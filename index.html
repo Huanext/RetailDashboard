@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Retail Battle Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#f4f5f7;--card:#fff;--ink:#16181d;--mute:#6b7280;--line:#e5e7eb;--soft:#f9fafb;
+  --post:#e4002b;--post-soft:#fde8ec;--tol:#0b6bcb;--tol-soft:#e6f0fb;
+  --good:#16a34a;--good-soft:#dcfce7;--warn:#d97706;--warn-soft:#fef3c7;--bad:#dc2626;--bad-soft:#fee2e2;
+  --shadow:0 1px 2px rgba(16,24,40,.06),0 1px 3px rgba(16,24,40,.08);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Thai',system-ui,sans-serif;font-size:14px}
+header{background:#111318;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;position:sticky;top:0;z-index:30}
+header h1{font-size:18px;margin:0;font-weight:700;letter-spacing:.2px}
+header h1 span.p{color:#ff5a76}header h1 span.t{color:#62a8ff}
+header .meta{font-size:12px;color:#b6bcc8}
+header .sp{flex:1}
+button{font-family:inherit}
+.btn{background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;font-size:13px;color:var(--ink)}
+.btn:hover{background:var(--soft)}
+header .btn{background:#23262e;border-color:#353943;color:#fff}
+.wrap{padding:16px 20px;max-width:1600px;margin:0 auto}
+.filters{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:12px}
+.fl{display:flex;flex-direction:column;gap:4px;min-width:150px;position:relative}
+.fl label{font-size:11px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+.ms-btn{width:100%;min-width:150px;max-width:240px;text-align:left;background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 28px 7px 10px;cursor:pointer;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
+.ms-btn:after{content:'▾';position:absolute;right:10px;top:7px;color:var(--mute)}
+.ms-btn.on{border-color:var(--post);background:var(--post-soft)}
+.ms-panel{position:absolute;top:100%;left:0;margin-top:4px;width:300px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.15);z-index:50;display:none;padding:8px}
+.ms-panel.open{display:block}
+.ms-panel input[type=search]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-family:inherit;margin-bottom:6px}
+.ms-act{display:flex;gap:6px;margin-bottom:6px}.ms-act button{flex:1;font-size:12px;padding:4px}
+.ms-list{max-height:280px;overflow:auto}
+.ms-list label{display:flex;gap:8px;align-items:flex-start;padding:4px 6px;border-radius:6px;cursor:pointer;font-size:13px;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:400}
+.ms-list label:hover{background:var(--soft)}
+.ms-list .cnt{margin-left:auto;color:var(--mute);font-size:11px}
+.tabs{display:flex;gap:4px;margin-bottom:12px;flex-wrap:wrap}
+.tab{background:transparent;border:0;padding:9px 16px;border-radius:999px;cursor:pointer;font-size:14px;color:var(--mute);font-weight:600}
+.tab.on{background:#111318;color:#fff}
+.sec{display:none}.sec.on{display:block}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:1000px){.g2,.g3{grid-template-columns:1fr}}
+.card{background:var(--card);border-radius:12px;box-shadow:var(--shadow);padding:14px 16px;min-width:0}
+.card h3{margin:0 0 10px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.card h3 small{font-weight:400;color:var(--mute);font-size:12px}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px}
+.tag.p{background:var(--post-soft);color:var(--post)}.tag.t{background:var(--tol-soft);color:var(--tol)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--soft);border-radius:10px;padding:10px 12px;border-left:4px solid var(--line)}
+.kpi.p{border-left-color:var(--post)}.kpi.t{border-left-color:var(--tol)}
+.kpi .l{font-size:11.5px;color:var(--mute)}
+.kpi .v{font-size:21px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:11.5px;color:var(--mute);margin-top:2px}
+.bar{height:6px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%}
+.tbl-wrap{overflow:auto;max-height:560px;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:12.5px;font-variant-numeric:tabular-nums}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap;text-align:right}
+th{background:#fafafa;position:sticky;top:0;z-index:2;font-weight:600;color:#374151;cursor:pointer;user-select:none}
+th.grp{cursor:default;text-align:center;top:0}
+thead tr:nth-child(2) th{top:29px}
+td.l,th.l{text-align:left}
+tr:hover td{background:#fafbff}
+th.ph{color:var(--post)}th.th{color:var(--tol)}
+.pill{display:inline-block;min-width:54px;text-align:center;padding:2px 6px;border-radius:999px;font-weight:600;font-size:12px}
+.pg{background:var(--good-soft);color:var(--good)}.pw{background:var(--warn-soft);color:var(--warn)}.pb{background:var(--bad-soft);color:var(--bad)}.pn{background:var(--soft);color:var(--mute)}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.toolbar input[type=search],.toolbar select{padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-family:inherit;font-size:13px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:6px 12px;cursor:pointer;font-size:13px}
+.seg button.on{background:#111318;color:#fff}
+.chart{position:relative;height:260px}
+.chart.tall{height:340px}
+.ins{margin:0;padding-left:18px;line-height:1.75}
+.ins li b{font-weight:700}
+.muted{color:var(--mute);font-size:12px}
+.medal{font-size:15px}
+.wk{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media(max-width:900px){.wk{grid-template-columns:repeat(2,1fr)}}
+.wkc{background:var(--soft);border-radius:10px;padding:10px 12px}
+.wkc .h{font-weight:700}.wkc .d{font-size:12px;color:var(--mute);margin-bottom:6px}
+.wkc .row{display:flex;justify-content:space-between;font-size:12.5px;margin-top:3px}
+#loading{position:fixed;inset:0;background:rgba(17,19,24,.72);display:flex;align-items:center;justify-content:center;z-index:100;color:#fff;flex-direction:column;gap:10px;font-size:15px}
+#loading .spin{width:42px;height:42px;border:4px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.note{font-size:12px;color:var(--mute);margin-top:8px;line-height:1.6}
+.rounds{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.rb{border:1px solid var(--line);background:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px;line-height:1.3;text-align:left}
+.rb.on{background:#111318;color:#fff;border-color:#111318}
+.rb small{display:block;opacity:.7}
+.rb.fut{opacity:.45}
+</style>
+</head>
+<body>
+<div id="loading"><div class="spin"></div><div id="ldtxt">กำลังโหลดข้อมูลจาก Google Sheets…</div></div>
+<header>
+  <h1><span class="p">POSTPAID</span> & <span class="t">TOL</span> · Retail Battle Dashboard</h1>
+  <div class="meta" id="meta">—</div>
+  <div class="sp"></div>
+  <button class="btn" id="btnReset">ล้างตัวกรอง</button>
+  <button class="btn" id="btnReload">⟳ โหลดข้อมูลใหม่</button>
+</header>
+<div class="wrap">
+  <div class="filters" id="filters"></div>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-t="ov">ภาพรวม MTD</button>
+    <button class="tab" data-t="wk">ราย Week</button>
+    <button class="tab" data-t="bt">Battle</button>
+    <button class="tab" data-t="in">ราย Indy</button>
+    <button class="tab" data-t="an">วิเคราะห์เชิงลึก</button>
+  </div>
+
+  <section class="sec on" id="sec-ov">
+    <div class="grid g2">
+      <div class="card"><h3><span class="tag p">POSTPAID</span> ยอดขาย <small id="ovPerP"></small></h3><div class="kpis" id="kpiP"></div></div>
+      <div class="card"><h3><span class="tag t">TOL</span> ยอด Register <small id="ovPerT"></small></h3><div class="kpis" id="kpiT"></div></div>
+    </div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card"><h3>Postpaid รายวัน <small>Revenue vs Target รายวัน</small></h3><div class="chart"><canvas id="chDayP"></canvas></div></div>
+      <div class="card"><h3>TOL รายวัน <small>Register vs Target รายวัน</small></h3><div class="chart"><canvas id="chDayT"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3>สรุปราย AREA</h3><div class="tbl-wrap" id="tblArea"></div></div>
+    <div class="card" style="margin-top:12px">
+      <h3>สรุปราย Shop</h3>
+      <div class="toolbar"><input type="search" id="qShop" placeholder="ค้นหา Shop…"><button class="btn" id="expShop">Export CSV</button><span class="muted" id="shopCnt"></span></div>
+      <div class="tbl-wrap" id="tblShop"></div>
+    </div>
+  </section>
+
+  <section class="sec" id="sec-wk">
+    <div class="card"><h3>สรุปราย Week <small id="wkRule"></small></h3><div class="wk" id="wkCards"></div></div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card"><h3>Postpaid %Ach ราย Week</h3><div class="chart"><canvas id="chWkP"></canvas></div></div>
+      <div class="card"><h3>TOL %Ach ราย Week</h3><div class="chart"><canvas id="chWkT"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>Shop × Week</h3>
+      <div class="toolbar"><div class="seg" id="wkMetric"><button data-v="P" class="on">Postpaid</button><button data-v="T">TOL</button></div><input type="search" id="qWk" placeholder="ค้นหา Shop…"></div>
+      <div class="tbl-wrap" id="tblWk"></div>
+    </div>
+  </section>
+
+  <section class="sec" id="sec-bt">
+    <div class="card">
+      <h3>รอบ Battle <small>จ.–อ. · พ.–พฤ. · ศ.–อา.</small></h3>
+      <div class="rounds" id="rounds"></div>
+      <div class="toolbar">
+        <span class="muted">จัดอันดับตาม</span>
+        <div class="seg" id="btMetric"><button data-v="S" class="on">คะแนนรวม</button><button data-v="P">Postpaid</button><button data-v="T">TOL</button></div>
+        <div class="seg" id="btGroup"><button data-v="1" class="on">แยก TYPE SHOP</button><button data-v="0">รวมทุก Type</button></div>
+      </div>
+      <div class="kpis" id="btKpi"></div>
+    </div>
+    <div id="btTables" style="margin-top:12px" class="grid"></div>
+    <div class="card" style="margin-top:12px"><h3>สรุปผลทุกรอบ Battle</h3><div class="tbl-wrap" id="tblRounds"></div>
+      <div class="note">คะแนนรวม = (Postpaid %Ach + TOL %Ach) ÷ 2 · Target ของรอบ = Target รายวันของ Week ที่วันนั้นอยู่ × จำนวนวันในรอบ (รอบที่ยังไม่จบคิดเฉพาะวันที่มีข้อมูลแล้ว)</div></div>
+  </section>
+
+  <section class="sec" id="sec-in">
+    <div class="card"><h3>ภาพรวม Indy</h3><div class="kpis" id="inKpi"></div></div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card"><h3>Top 15 Indy · Postpaid Revenue</h3><div class="chart tall"><canvas id="chInP"></canvas></div></div>
+      <div class="card"><h3>Top 15 Indy · TOL Register</h3><div class="chart tall"><canvas id="chInT"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <h3>รายละเอียดราย Indy (SALE ID)</h3>
+      <div class="toolbar"><input type="search" id="qIn" placeholder="ค้นหา Sale ID / Shop…"><button class="btn" id="expIn">Export CSV</button><span class="muted" id="inCnt"></span></div>
+      <div class="tbl-wrap" id="tblIn"></div>
+    </div>
+  </section>
+
+  <section class="sec" id="sec-an">
+    <div class="card"><h3>Insight อัตโนมัติ <small>อิงตามตัวกรองที่เลือก</small></h3><ul class="ins" id="insList"></ul></div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card"><h3>Channel การขาย <small>จำนวนนำเสนอ & Close rate</small></h3><div class="chart"><canvas id="chCh"></canvas></div></div>
+      <div class="card"><h3>Postpaid · TYPE การนำเสนอ <small>Register & Revenue</small></h3><div class="chart"><canvas id="chType"></canvas></div></div>
+      <div class="card"><h3>Postpaid · สาเหตุปิดการขายไม่ได้ <small>Top 10</small></h3><div class="chart tall"><canvas id="chLostP"></canvas></div></div>
+      <div class="card"><h3>TOL · สาเหตุปิดการขายไม่ได้ <small>Top 10</small></h3><div class="chart tall"><canvas id="chLostT"></canvas></div></div>
+      <div class="card"><h3>ช่วงเวลา (ชั่วโมง) <small>จำนวนนำเสนอ & Close rate</small></h3><div class="chart"><canvas id="chHour"></canvas></div></div>
+      <div class="card"><h3>วันในสัปดาห์ <small>ค่าเฉลี่ยต่อวัน (เทียบกับ %Target รายวัน)</small></h3><div class="chart"><canvas id="chDow"></canvas></div></div>
+    </div>
+    <div class="grid g2" style="margin-top:12px">
+      <div class="card"><h3>Shop เสี่ยงไม่ถึงเป้า <small>Forecast &lt; 90%</small></h3><div class="tbl-wrap" id="tblRisk" style="max-height:380px"></div></div>
+      <div class="card"><h3>Shop ไม่มียอด 3 วันล่าสุด</h3><div class="tbl-wrap" id="tblZero" style="max-height:380px"></div></div>
+    </div>
+  </section>
+  <p class="note" id="foot"></p>
+</div>
+
+<script>
+/* ================= CONFIG ================= */
+const CFG = {
+  POST:{id:'1fFn-bTNVjoU8ctyTKNqh4NXZaf9vFd2iMjnNnVzKl0U', shopSheet:'Shop', form:'การตอบแบบฟอร์ม 1',
+        // Sheet SHOP: A=Shop Code, B=SHOP NAME, C=AREA, D=TYPE SHOP, E=Target (Revenue/เดือน)
+        shopCols:{code:0,name:1,area:2,type:3,target:4}, shopQuery:'select A,B,C,D,E',
+        weekWeight:[0.28,0.23,0.21,0.28]},
+  TOL:{id:'13FqWqNdztO_2LZv_2pFyzsFS_r5PkpBmPnre-VlIbEI', shopSheet:'Shop', form:'การตอบแบบฟอร์ม 1',
+        // Sheet SHOP: A=SHOP_CODE, B=AREA, C=SHOP_NAME, D=Type Shop, F=Target (Register/เดือน)
+        shopCols:{code:0,area:1,name:2,type:3,target:4}, shopQuery:'select A,B,C,D,F',
+        weekWeight:[0.30,0.24,0.21,0.25]},
+  WEIGHT_MODE:'sheet' // 'sheet' = ใช้ % ต่อ Week ตาม Sheet SHOP, 'days' = แบ่งตามจำนวนวัน
+};
+const TH_DOW=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+const TH_MON=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+/* ================= UTIL ================= */
+const $=s=>document.querySelector(s);
+const fmt=(n,d)=>{d=typeof d==='number'?d:0;return (n==null||!isFinite(n))?'–':Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d})};
+const pct=(a,b)=>b>0?a/b:null;
+const fp=(x,d=1)=>x==null?'–':(x*100).toFixed(d)+'%';
+const pill=x=>{if(x==null)return '<span class="pill pn">–</span>';const c=x>=1?'pg':x>=.8?'pw':'pb';return `<span class="pill ${c}">${fp(x)}</span>`};
+const num=s=>{if(s==null)return 0;const v=parseFloat(String(s).replace(/[,%\s฿]/g,''));return isFinite(v)?v:0};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function parseCSV(t){const rows=[];let row=[],f='',q=false;for(let i=0;i<t.length;i++){const c=t[i];if(q){if(c==='"'){if(t[i+1]==='"'){f+='"';i++}else q=false}else f+=c}else if(c==='"')q=true;else if(c===','){row.push(f);f=''}else if(c==='\n'){row.push(f);rows.push(row);row=[];f=''}else if(c!=='\r')f+=c}if(f!==''||row.length){row.push(f);rows.push(row)}return rows}
+async function gq(id,sheet,tq,headers=1){
+  const url=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&headers=${headers}&sheet=${encodeURIComponent(sheet)}&tq=${encodeURIComponent(tq)}&_=${Date.now()}`;
+  try{
+    const r=await fetch(url);if(!r.ok)throw new Error('HTTP '+r.status+' '+sheet);
+    const rows=parseCSV(await r.text());return headers?rows.slice(1):rows;
+  }catch(e){ // fallback: JSONP (กรณีเปิดไฟล์จากเครื่องแล้ว browser บล็อก fetch)
+    return gqJsonp(id,sheet,tq,headers);
+  }
+}
+let _jp=0;
+function gqJsonp(id,sheet,tq,headers){return new Promise((res,rej)=>{
+  const cb='__gv'+(++_jp);const s=document.createElement('script');
+  const to=setTimeout(()=>{delete window[cb];s.remove();rej(new Error('timeout '+sheet))},120000);
+  window[cb]=d=>{clearTimeout(to);delete window[cb];s.remove();
+    if(d.status==='error')return rej(new Error((d.errors||[]).map(x=>x.detailed_message||x.message).join(' ')));
+    res(d.table.rows.map(r=>(r.c||[]).map(c=>c==null?'':(c.v!=null&&typeof c.v!=='object'?String(c.v):(c.f??'')))));};
+  s.onerror=()=>{clearTimeout(to);delete window[cb];rej(new Error('โหลด '+sheet+' ไม่ได้'))};
+  s.src=`https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:json;responseHandler:${cb}&headers=${headers}&sheet=${encodeURIComponent(sheet)}&tq=${encodeURIComponent(tq)}`;
+  document.head.appendChild(s);})}
+const sum=(a,f)=>{let s=0;for(const x of a)s+=f(x);return s};
+function groupBy(a,kf){const m=new Map();for(const x of a){const k=kf(x);let g=m.get(k);if(!g){g=[];m.set(k,g)}g.push(x)}return m}
+function dl(name,rows){const csv='\ufeff'+rows.map(r=>r.map(v=>{v=String(v??'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download=name;a.click()}
+
+/* ================= STATE ================= */
+const S={f:{area:new Set(),type:new Set(),shop:new Set(),indy:new Set(),ch:new Set(),week:new Set()},tab:'ov',round:null,btMetric:'S',btGroup:true,wkMetric:'P',sort:{}};
+const charts={};
+
+/* ================= LOAD ================= */
+async function load(){
+  $('#loading').style.display='flex';
+  const step=t=>$('#ldtxt').textContent=t;
+  try{
+    step('ตรวจสอบเดือนของข้อมูล…');
+    const mm=await gq(CFG.POST.id,CFG.POST.form,'select year(A),P,count(A) where A is not null group by year(A),P');
+    mm.sort((a,b)=>num(b[2])-num(a[2]));
+    S.Y=num(mm[0][0]);S.M=num(mm[0][1]);
+    S.dim=new Date(S.Y,S.M,0).getDate();
+    const M=S.M,P=CFG.POST,T=CFG.TOL;
+    step('กำลังโหลด Shop / Target และยอดขาย Postpaid + TOL…');
+    const [shP,shT,fP,fT,lP,lT,hP,hT]=await Promise.all([
+      gq(P.id,P.shopSheet,P.shopQuery,0),
+      gq(T.id,T.shopSheet,T.shopQuery,0),
+      gq(P.id,P.form,`select Q,D,O,E,H,count(A),sum(R),sum(S) where P=${M} and A is not null group by Q,D,O,E,H`),
+      gq(T.id,T.form,`select Q,D,O,E,count(A),sum(R) where P=${M} and A is not null group by Q,D,O,E`),
+      gq(P.id,P.form,`select Q,D,O,J,K,count(A) where P=${M} and R=0 group by Q,D,O,J,K`),
+      gq(T.id,T.form,`select Q,D,O,J,count(A) where P=${M} and R=0 group by Q,D,O,J`),
+      gq(P.id,P.form,`select Q,O,hour(A),count(A),sum(R),sum(S) where P=${M} and A is not null group by Q,O,hour(A)`),
+      gq(T.id,T.form,`select Q,O,hour(A),count(A),sum(R) where P=${M} and A is not null group by Q,O,hour(A)`)
+    ]);
+    step('กำลังประมวลผล…');
+    const shops=new Map();
+    const addShop=(rows,c,key)=>{for(const r of rows){const code=String(r[c.code]||'').trim();if(!/^\d{6,}$/.test(code))continue;
+      let s=shops.get(code);if(!s){s={code,name:'',area:'',type:'',tP:0,tT:0};shops.set(code,s)}
+      if(!s.name)s.name=String(r[c.name]||'').trim();if(!s.area)s.area=String(r[c.area]||'').trim();if(!s.type)s.type=String(r[c.type]||'').trim();
+      s[key]+=num(r[c.target]);}};
+    addShop(shP,P.shopCols,'tP');addShop(shT,T.shopCols,'tT');
+    const code=v=>String(v||'').trim().split(/\s+/)[0];
+    const ensure=c=>{if(!shops.has(c))shops.set(c,{code:c,name:c,area:'(ไม่อยู่ใน Sheet SHOP)',type:'-',tP:0,tT:0})};
+    const clean=v=>String(v||'').trim()||'(ไม่ระบุ)';
+    S.fp=fP.map(r=>({s:code(r[0]),i:String(r[1]).trim()||'(ไม่ระบุ)',d:num(r[2]),c:clean(r[3]),t:String(r[4]||'').trim(),n:num(r[5]),r:num(r[6]),v:num(r[7])})).filter(x=>x.s&&x.d>=1);
+    S.ft=fT.map(r=>({s:code(r[0]),i:String(r[1]).trim()||'(ไม่ระบุ)',d:num(r[2]),c:clean(r[3]),n:num(r[4]),r:num(r[5])})).filter(x=>x.s&&x.d>=1);
+    S.lp=lP.map(r=>({s:code(r[0]),i:String(r[1]).trim()||'(ไม่ระบุ)',d:num(r[2]),t:clean(r[3]),rs:clean(r[4]),n:num(r[5])})).filter(x=>x.s);
+    S.lt=lT.map(r=>({s:code(r[0]),i:String(r[1]).trim()||'(ไม่ระบุ)',d:num(r[2]),rs:clean(r[3]),n:num(r[4])})).filter(x=>x.s);
+    S.hp=hP.map(r=>({s:code(r[0]),d:num(r[1]),h:num(r[2]),n:num(r[3]),r:num(r[4]),v:num(r[5])})).filter(x=>x.s);
+    S.ht=hT.map(r=>({s:code(r[0]),d:num(r[1]),h:num(r[2]),n:num(r[3]),r:num(r[4])})).filter(x=>x.s);
+    for(const a of [S.fp,S.ft])for(const x of a)ensure(x.s);
+    S.shops=shops;
+    S.asOf=Math.max(0,...S.fp.map(x=>x.d),...S.ft.map(x=>x.d));
+    buildCalendar();
+    buildFilters();
+    $('#meta').textContent=`ข้อมูลเดือน ${TH_MON[S.M-1]} ${S.Y} · ถึงวันที่ ${S.asOf} (${S.asOf}/${S.dim} วัน) · โหลดเมื่อ ${new Date().toLocaleString('th-TH')}`;
+    $('#foot').innerHTML=`ที่มา: Google Sheets “POSTPAID 101 By Shop” และ “Register True Online By Shop” (Sheet <b>Shop</b> + <b>การตอบแบบฟอร์ม 1</b>) · Postpaid วัดจาก Revenue (ยอด Register Complete ใช้เป็นจำนวน) · TOL วัดจากจำนวน Register Complete · Target ราย Week: Postpaid ${CFG.POST.weekWeight.map(x=>Math.round(x*100)+'%').join('/')} · TOL ${CFG.TOL.weekWeight.map(x=>Math.round(x*100)+'%').join('/')} ของ Target เดือน`;
+    render();
+  }catch(e){console.error(e);$('#ldtxt').innerHTML='โหลดข้อมูลไม่สำเร็จ: '+esc(e.message)+'<br><small>ตรวจสอบว่า Sheet แชร์แบบ “ทุกคนที่มีลิงก์ดูได้” และเชื่อมต่ออินเทอร์เน็ต</small><br><button class="btn" onclick="load()">ลองใหม่</button>';return}
+  $('#loading').style.display='none';
+}
+
+/* ============ CALENDAR: WEEK & BATTLE ROUNDS ============ */
+function buildCalendar(){
+  const dim=S.dim;
+  // 8-7-7-8 (30 วัน) / 8-7-7-9 (31 วัน) — สัปดาห์สุดท้ายรับวันที่เหลือ
+  const ranges=[[1,8],[9,15],[16,22],[23,dim]];
+  S.weeks=ranges.map(([a,b],i)=>({w:i+1,from:a,to:b,days:b-a+1}));
+  S.wkOf=d=>d<=8?0:d<=15?1:d<=22?2:3;
+  const wf=(prod)=>{const w=CFG[prod].weekWeight;return d=>{const k=S.wkOf(d);const wt=CFG.WEIGHT_MODE==='days'?S.weeks[k].days/dim:w[k];return wt/S.weeks[k].days}};
+  S.dfP=[0];S.dfT=[0];const a=wf('POST'),b=wf('TOL');for(let d=1;d<=dim;d++){S.dfP[d]=a(d);S.dfT[d]=b(d)}
+  // Battle: จ-อ / พ-พฤ / ศ-อา
+  const cls=dow=>dow===1||dow===2?'A':dow===3||dow===4?'B':'C';
+  const lbl={A:'จ.–อ.',B:'พ.–พฤ.',C:'ศ.–อา.'};
+  S.rounds=[];let cur=null;
+  for(let d=1;d<=dim;d++){const dow=new Date(S.Y,S.M-1,d).getDay();const c=cls(dow);
+    if(!cur||cur.cls!==c){cur={cls:c,label:lbl[c],days:[]};S.rounds.push(cur)}
+    cur.days.push(d)}
+  S.rounds.forEach((r,i)=>{r.no=i+1;r.from=r.days[0];r.to=r.days[r.days.length-1];r.status=r.from>S.asOf?'fut':r.to<=S.asOf?'done':'live'});
+  if(S.round==null||S.round>=S.rounds.length){const live=S.rounds.findIndex(r=>r.status==='live');const lastDone=S.rounds.map(r=>r.status).lastIndexOf('done');S.round=live>=0?live:Math.max(0,lastDone)}
+}
+const dLabel=d=>`${d} ${TH_MON[S.M-1]} (${TH_DOW[new Date(S.Y,S.M-1,d).getDay()]})`;
+
+/* ================= FILTERS (cascading multi-select) ================= */
+const FDEF=[
+  {k:'area',label:'AREA'},{k:'type',label:'TYPE SHOP'},{k:'shop',label:'SHOP'},
+  {k:'indy',label:'INDY (SALE ID)'},{k:'ch',label:'CHANNEL'},{k:'week',label:'WEEK'}];
+function buildFilters(){
+  const box=$('#filters');box.innerHTML='';
+  for(const f of FDEF){
+    const el=document.createElement('div');el.className='fl';el.dataset.k=f.k;
+    el.innerHTML=`<label>${f.label}</label><button class="ms-btn">ทั้งหมด</button><div class="ms-panel"><input type="search" placeholder="ค้นหา…"><div class="ms-act"><button class="btn" data-a="all">เลือกที่แสดง</button><button class="btn" data-a="clr">ล้าง</button></div><div class="ms-list"></div></div>`;
+    box.appendChild(el);
+    const btn=el.querySelector('.ms-btn'),pan=el.querySelector('.ms-panel'),inp=pan.querySelector('input');
+    btn.onclick=e=>{e.stopPropagation();const o=pan.classList.contains('open');document.querySelectorAll('.ms-panel.open').forEach(p=>p.classList.remove('open'));if(!o){pan.classList.add('open');fillList(f.k);inp.focus()}};
+    pan.onclick=e=>e.stopPropagation();
+    inp.oninput=()=>fillList(f.k);
+    pan.querySelector('[data-a=all]').onclick=()=>{for(const o of visibleOpts(f.k))S.f[f.k].add(o.v);changed(f.k)};
+    pan.querySelector('[data-a=clr]').onclick=()=>{S.f[f.k].clear();changed(f.k)};
+  }
+  updateBtns();
+}
+document.addEventListener('click',()=>document.querySelectorAll('.ms-panel.open').forEach(p=>p.classList.remove('open')));
+function shopMatch(s,skip){const f=S.f;
+  if(skip!=='area'&&f.area.size&&!f.area.has(s.area))return false;
+  if(skip!=='type'&&f.type.size&&!f.type.has(s.type))return false;
+  if(skip!=='shop'&&f.shop.size&&!f.shop.has(s.code))return false;
+  if(skip!=='indy'&&f.indy.size&&!S.indyShops.has(s.code))return false;
+  return true}
+function computeIndyShops(){S.indyShops=new Set();if(!S.f.indy.size)return;for(const a of [S.fp,S.ft])for(const x of a)if(S.f.indy.has(x.i))S.indyShops.add(x.s)}
+function options(k){
+  computeIndyShops();
+  const shops=[...S.shops.values()];
+  if(k==='area'||k==='type'){const m=new Map();for(const s of shops)if(shopMatch(s,k)){const v=s[k]||'(ไม่ระบุ)';m.set(v,(m.get(v)||0)+1)}return [...m].sort((a,b)=>a[0].localeCompare(b[0])).map(([v,c])=>({v,t:v,c:c+' shop'}))}
+  if(k==='shop'){return shops.filter(s=>shopMatch(s,'shop')).sort((a,b)=>a.area.localeCompare(b.area)||a.name.localeCompare(b.name)).map(s=>({v:s.code,t:`${s.code} ${s.name}`,c:s.area.replace(/ - .*/,'')}))}
+  if(k==='indy'){const ok=new Set(shops.filter(s=>shopMatch(s,'indy')).map(s=>s.code));const m=new Map();for(const a of [S.fp,S.ft])for(const x of a){if(!ok.has(x.s))continue;if(S.f.ch.size&&!S.f.ch.has(x.c))continue;const o=m.get(x.i)||{n:0,s:x.s};o.n+=x.n;m.set(x.i,o)}
+    return [...m].sort((a,b)=>b[1].n-a[1].n).map(([v,o])=>({v,t:v,c:(S.shops.get(o.s)?.name||o.s).replace('True Shop ','')}))}
+  if(k==='ch'){const ok=new Set(shops.filter(s=>shopMatch(s)).map(s=>s.code));const m=new Map();for(const a of [S.fp,S.ft])for(const x of a){if(!ok.has(x.s))continue;if(S.f.indy.size&&!S.f.indy.has(x.i))continue;m.set(x.c,(m.get(x.c)||0)+x.n)}return [...m].sort((a,b)=>b[1]-a[1]).map(([v,c])=>({v,t:v,c:fmt(c)}))}
+  if(k==='week')return S.weeks.map(w=>({v:String(w.w),t:`Week ${w.w}`,c:`${w.from}–${w.to} (${w.days} วัน)`}));
+  return [];
+}
+function visibleOpts(k){const el=document.querySelector(`.fl[data-k=${k}]`);const q=el.querySelector('input').value.trim().toLowerCase();return options(k).filter(o=>!q||(o.t+' '+o.c).toLowerCase().includes(q))}
+function fillList(k){
+  const el=document.querySelector(`.fl[data-k=${k}]`),list=el.querySelector('.ms-list');
+  const opts=visibleOpts(k);const sel=S.f[k];
+  // selected items not in current options remain visible on top
+  const extra=[...sel].filter(v=>!opts.some(o=>o.v===v)).map(v=>({v,t:v,c:'(ไม่อยู่ในตัวกรองอื่น)'}));
+  const all=[...extra,...opts].slice(0,600);
+  list.innerHTML=all.map(o=>`<label><input type="checkbox" value="${esc(o.v)}" ${sel.has(o.v)?'checked':''}><span>${esc(o.t)}</span><span class="cnt">${esc(o.c)}</span></label>`).join('')+(opts.length>600?`<div class="muted" style="padding:6px">แสดง 600 จาก ${opts.length} — พิมพ์ค้นหาเพิ่ม</div>`:'')+(all.length?'':'<div class="muted" style="padding:6px">ไม่มีรายการ</div>');
+  list.querySelectorAll('input').forEach(cb=>cb.onchange=()=>{cb.checked?sel.add(cb.value):sel.delete(cb.value);changed(k,true)});
+}
+function updateBtns(){for(const f of FDEF){const el=document.querySelector(`.fl[data-k=${f.k}]`);if(!el)continue;const b=el.querySelector('.ms-btn');const s=[...S.f[f.k]];
+  b.classList.toggle('on',s.length>0);
+  b.textContent=!s.length?'ทั้งหมด':s.length===1?(f.k==='shop'?(S.shops.get(s[0])?.name||s[0]):f.k==='week'?'Week '+s[0]:s[0]):`เลือก ${s.length} รายการ`}}
+let rt;
+function changed(k,keepOpen){
+  // prune selections that are no longer valid given other filters (keeps everything related)
+  for(const f of FDEF){if(f.k===k||f.k==='week')continue;if(!S.f[f.k].size)continue;const ok=new Set(options(f.k).map(o=>o.v));for(const v of [...S.f[f.k]])if(!ok.has(v))S.f[f.k].delete(v)}
+  updateBtns();
+  document.querySelectorAll('.ms-panel.open').forEach(p=>fillList(p.parentElement.dataset.k));
+  clearTimeout(rt);rt=setTimeout(render,120);
+}
+
+/* ================= CORE AGG ================= */
+function ctx(daysOverride){
+  computeIndyShops();
+  const shops=[...S.shops.values()].filter(s=>shopMatch(s));
+  const ok=new Set(shops.map(s=>s.code));
+  let days;
+  if(daysOverride)days=daysOverride;
+  else if(S.f.week.size){days=[];for(const w of S.weeks)if(S.f.week.has(String(w.w)))for(let d=w.from;d<=w.to;d++)days.push(d)}
+  else{days=[];for(let d=1;d<=S.dim;d++)days.push(d)}
+  const fullDays=days.slice();
+  const elDays=days.filter(d=>d<=S.asOf);
+  const dset=new Set(elDays);
+  const fI=S.f.indy,fC=S.f.ch;
+  const keep=x=>ok.has(x.s)&&dset.has(x.d)&&(!fI.size||x.i===undefined||fI.has(x.i))&&(!fC.size||x.c===undefined||fC.has(x.c));
+  const keepH=x=>ok.has(x.s)&&dset.has(x.d)&&!fI.size&&!fC.size; // hour data: no indy/channel dimension
+  return {shops,ok,fullDays,elDays,
+    fp:S.fp.filter(keep),ft:S.ft.filter(keep),lp:S.lp.filter(x=>ok.has(x.s)&&dset.has(x.d)&&(!fI.size||fI.has(x.i))),lt:S.lt.filter(x=>ok.has(x.s)&&dset.has(x.d)&&(!fI.size||fI.has(x.i))),
+    hp:(fI.size||fC.size)?null:S.hp.filter(keepH),ht:(fI.size||fC.size)?null:S.ht.filter(keepH),
+    tPsum:sum(shops,s=>s.tP),tTsum:sum(shops,s=>s.tT),
+    fP:days=>sum(days,d=>S.dfP[d]),fT:days=>sum(days,d=>S.dfT[d])};
+}
+function byShop(c){
+  const m=new Map();for(const s of c.shops)m.set(s.code,{s,pn:0,pr:0,pv:0,tn:0,tr:0});
+  for(const x of c.fp){const o=m.get(x.s);if(o){o.pn+=x.n;o.pr+=x.r;o.pv+=x.v}}
+  for(const x of c.ft){const o=m.get(x.s);if(o){o.tn+=x.n;o.tr+=x.r}}
+  const fPel=c.fP(c.elDays),fTel=c.fT(c.elDays),fPfull=c.fP(c.fullDays),fTfull=c.fT(c.fullDays);
+  const elN=c.elDays.length,fullN=c.fullDays.length;
+  for(const o of m.values()){o.ptg=o.s.tP*fPel;o.ttg=o.s.tT*fTel;o.ptf=o.s.tP*fPfull;o.ttf=o.s.tT*fTfull;
+    o.pa=pct(o.pv,o.ptg);o.ta=pct(o.tr,o.ttg);
+    o.pfc=elN?pct(o.pv/elN*fullN,o.ptf):null;o.tfc=elN?pct(o.tr/elN*fullN,o.ttf):null;
+    o.pcr=pct(o.pr,o.pn);o.tcr=pct(o.tr,o.tn)}
+  return m;
+}
+
+/* ================= RENDER ================= */
+function render(){
+  if(!S.shops)return;
+  ({ov:renderOv,wk:renderWk,bt:renderBt,in:renderIn,an:renderAn})[S.tab]();
+}
+function mkChart(id,cfg){if(charts[id])charts[id].destroy();const el=document.getElementById(id);if(!el||!window.Chart)return;charts[id]=new Chart(el,cfg)}
+if(window.Chart){Chart.defaults.font.family="'IBM Plex Sans Thai',system-ui,sans-serif";Chart.defaults.font.size=11.5;Chart.defaults.plugins.legend.labels.boxWidth=12;}
+function kpi(cls,l,v,s,bar){return `<div class="kpi ${cls}"><div class="l">${l}</div><div class="v">${v}</div>${s?`<div class="s">${s}</div>`:''}${bar!=null?`<div class="bar"><i style="width:${Math.min(100,Math.max(0,bar*100))}%;background:${bar>=1?'var(--good)':bar>=.8?'var(--warn)':'var(--bad)'}"></i></div>`:''}</div>`}
+function perLabel(c){return S.f.week.size?`Week ${[...S.f.week].sort().join(', ')} · ถึงวันที่ ${Math.max(0,...c.elDays)}`:`MTD 1–${S.asOf} ${TH_MON[S.M-1]}`}
+
+function totals(c){
+  const pv=sum(c.fp,x=>x.v),pr=sum(c.fp,x=>x.r),pn=sum(c.fp,x=>x.n),tr=sum(c.ft,x=>x.r),tn=sum(c.ft,x=>x.n);
+  const ptg=c.tPsum*c.fP(c.elDays),ttg=c.tTsum*c.fT(c.elDays),ptf=c.tPsum*c.fP(c.fullDays),ttf=c.tTsum*c.fT(c.fullDays);
+  const elN=c.elDays.length,fullN=c.fullDays.length,rem=fullN-elN;
+  return {pv,pr,pn,tr,tn,ptg,ttg,ptf,ttf,elN,fullN,rem,pfc:elN?pv/elN*fullN:0,tfc:elN?tr/elN*fullN:0};
+}
+function renderOv(){
+  const c=ctx(),t=totals(c);
+  $('#ovPerP').textContent=$('#ovPerT').textContent=perLabel(c);
+  $('#kpiP').innerHTML=[
+    kpi('p','Revenue Actual',fmt(t.pv),`Target ถึงวันนี้ ${fmt(t.ptg)}`,pct(t.pv,t.ptg)),
+    kpi('p','%Ach (ถึงวันนี้)',fp(pct(t.pv,t.ptg)),`Gap ${fmt(t.pv-t.ptg)}`),
+    kpi('p','%Ach เทียบ Target ทั้งช่วง',fp(pct(t.pv,t.ptf)),`Target ${fmt(t.ptf)}`,pct(t.pv,t.ptf)),
+    kpi('p','Forecast (Run-rate)',fp(pct(t.pfc,t.ptf)),`คาดการณ์ ${fmt(t.pfc)}`),
+    kpi('p','ต้องทำต่อวัน',t.rem>0?fmt(Math.max(0,(t.ptf-t.pv)/t.rem)):'–',t.rem>0?`เหลือ ${t.rem} วัน · ทำได้เฉลี่ย ${fmt(t.pv/(t.elN||1))}/วัน`:'ครบช่วงแล้ว'),
+    kpi('p','Register (เครื่อง)',fmt(t.pr),`นำเสนอ ${fmt(t.pn)} ครั้ง`),
+    kpi('p','Close Rate',fp(pct(t.pr,t.pn)),'Register ÷ นำเสนอ'),
+    kpi('p','ARPU',fmt(pct(t.pv,t.pr)),'Revenue ÷ Register')].join('');
+  $('#kpiT').innerHTML=[
+    kpi('t','Register Actual',fmt(t.tr),`Target ถึงวันนี้ ${fmt(t.ttg,0)}`,pct(t.tr,t.ttg)),
+    kpi('t','%Ach (ถึงวันนี้)',fp(pct(t.tr,t.ttg)),`Gap ${fmt(t.tr-t.ttg)}`),
+    kpi('t','%Ach เทียบ Target ทั้งช่วง',fp(pct(t.tr,t.ttf)),`Target ${fmt(t.ttf)}`,pct(t.tr,t.ttf)),
+    kpi('t','Forecast (Run-rate)',fp(pct(t.tfc,t.ttf)),`คาดการณ์ ${fmt(t.tfc)}`),
+    kpi('t','ต้องทำต่อวัน',t.rem>0?fmt(Math.max(0,(t.ttf-t.tr)/t.rem),1):'–',t.rem>0?`เหลือ ${t.rem} วัน · ทำได้เฉลี่ย ${fmt(t.tr/(t.elN||1),1)}/วัน`:'ครบช่วงแล้ว'),
+    kpi('t','นำเสนอ',fmt(t.tn),'จำนวนครั้งที่บันทึกฟอร์ม'),
+    kpi('t','Close Rate',fp(pct(t.tr,t.tn)),'Register ÷ นำเสนอ'),
+    kpi('t','Register / Shop',fmt(pct(t.tr,c.shops.filter(s=>s.tT>0).length),1),'เฉลี่ยต่อ Shop ที่มี Target')].join('');
+  // daily charts
+  const days=c.fullDays,labels=days.map(d=>d+'');
+  const dP=new Map(),dT=new Map();for(const x of c.fp)dP.set(x.d,(dP.get(x.d)||0)+x.v);for(const x of c.ft)dT.set(x.d,(dT.get(x.d)||0)+x.r);
+  const dayCfg=(act,tg,col,name)=>({data:{labels,datasets:[{type:'bar',label:name,data:act,backgroundColor:days.map(d=>{const dow=new Date(S.Y,S.M-1,d).getDay();return (dow===0||dow===6)?col+'aa':col})},{type:'line',label:'Target/วัน',data:tg,borderColor:'#111318',borderWidth:1.5,pointRadius:0,borderDash:[4,3]}]},options:{maintainAspectRatio:false,plugins:{tooltip:{callbacks:{title:i=>dLabel(+i[0].label)}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>fmt(v)}}}}});
+  mkChart('chDayP',dayCfg(days.map(d=>d<=S.asOf?dP.get(d)||0:null),days.map(d=>c.tPsum*S.dfP[d]),'#e4002b','Revenue'));
+  mkChart('chDayT',dayCfg(days.map(d=>d<=S.asOf?dT.get(d)||0:null),days.map(d=>c.tTsum*S.dfT[d]),'#0b6bcb','Register'));
+  // area
+  const bs=byShop(c);const am=new Map();
+  for(const o of bs.values()){const k=o.s.area||'(ไม่ระบุ)';const a=am.get(k)||{area:k,n:0,ptg:0,pv:0,ptf:0,ttg:0,tr:0,ttf:0,pr:0,pn:0,tn:0};a.n++;for(const f of ['ptg','pv','ptf','ttg','tr','ttf','pr','pn','tn'])a[f]+=o[f];am.set(k,a)}
+  const ar=[...am.values()].map(a=>({...a,pa:pct(a.pv,a.ptg),ta:pct(a.tr,a.ttg),pfc:t.elN?pct(a.pv/t.elN*t.fullN,a.ptf):null,tfc:t.elN?pct(a.tr/t.elN*t.fullN,a.ttf):null,pcr:pct(a.pr,a.pn),tcr:pct(a.tr,a.tn)}));
+  table('#tblArea','area',ar,[
+    {k:'area',t:'AREA',l:1},{k:'n',t:'Shop',f:fmt},
+    {g:'POSTPAID',k:'ptg',t:'Target',f:fmt,c:'ph'},{k:'pv',t:'Actual',f:fmt,c:'ph'},{k:'pa',t:'%Ach',f:pill,c:'ph'},{k:'pfc',t:'Forecast',f:pill,c:'ph'},{k:'pcr',t:'Close%',f:x=>fp(x),c:'ph'},
+    {g:'TOL',k:'ttg',t:'Target',f:x=>fmt(x),c:'th'},{k:'tr',t:'Actual',f:fmt,c:'th'},{k:'ta',t:'%Ach',f:pill,c:'th'},{k:'tfc',t:'Forecast',f:pill,c:'th'},{k:'tcr',t:'Close%',f:x=>fp(x),c:'th'}
+  ],'pa',true);
+  // shop
+  const q=$('#qShop').value.trim().toLowerCase();
+  const sr=[...bs.values()].map(o=>({code:o.s.code,name:o.s.name,area:o.s.area,type:o.s.type,...o})).filter(o=>!q||(o.code+' '+o.name+' '+o.area).toLowerCase().includes(q));
+  $('#shopCnt').textContent=sr.length+' shop';
+  S._shopRows=sr;
+  table('#tblShop','shop',sr,[
+    {k:'code',t:'Code',l:1},{k:'name',t:'SHOP NAME',l:1},{k:'area',t:'AREA',l:1},{k:'type',t:'TYPE',l:1},
+    {g:'POSTPAID',k:'ptg',t:'Target',f:fmt,c:'ph'},{k:'pv',t:'Actual',f:fmt,c:'ph'},{k:'pa',t:'%Ach',f:pill,c:'ph'},{k:'pfc',t:'Forecast',f:pill,c:'ph'},{k:'pr',t:'Reg.',f:fmt,c:'ph'},{k:'pcr',t:'Close%',f:x=>fp(x),c:'ph'},
+    {g:'TOL',k:'ttg',t:'Target',f:x=>fmt(x,1),c:'th'},{k:'tr',t:'Actual',f:fmt,c:'th'},{k:'ta',t:'%Ach',f:pill,c:'th'},{k:'tfc',t:'Forecast',f:pill,c:'th'},{k:'tcr',t:'Close%',f:x=>fp(x),c:'th'}
+  ],'pa',true);
+}
+
+/* generic sortable table with optional group header */
+function table(sel,key,rows,cols,defSort,desc){
+  const st=S.sort[key]||(S.sort[key]={k:defSort,d:desc});
+  const v=r=>{const x=r[st.k];return x==null?(st.d?-Infinity:Infinity):x};
+  rows=rows.slice().sort((a,b)=>{const x=v(a),y=v(b);const r=typeof x==='string'?x.localeCompare(y):x-y;return st.d?-r:r});
+  const hasG=cols.some(c=>c.g);
+  let gh='';if(hasG){let i=0;const parts=[];while(i<cols.length){if(cols[i].g){const g=cols[i].g;let n=1;while(i+n<cols.length&&!cols[i+n].g&&cols[i+n].c===cols[i].c)n++;parts.push(`<th class="grp ${cols[i].c||''}" colspan="${n}">${g}</th>`);i+=n}else{parts.push('<th class="grp"></th>');i++}}gh=`<tr>${parts.join('')}</tr>`}
+  const h=`<tr>${cols.map(c=>`<th data-k="${c.k}" class="${c.l?'l':''} ${c.c||''}">${c.t}${st.k===c.k?(st.d?' ▼':' ▲'):''}</th>`).join('')}</tr>`;
+  const body=rows.map((r,i)=>`<tr>${cols.map(c=>{const x=c.k==='#'?i+1:r[c.k];return `<td class="${c.l?'l':''}">${c.f?c.f(x,r,i):esc(x)}</td>`}).join('')}</tr>`).join('');
+  const el=$(sel);el.innerHTML=`<table><thead>${gh}${h}</thead><tbody>${body||`<tr><td colspan="${cols.length}" class="l muted">ไม่มีข้อมูล</td></tr>`}</tbody></table>`;
+  if(!hasG)el.querySelectorAll('thead tr th').forEach(th=>th.style.top='0');
+  el.querySelectorAll('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;if(k==='#')return;if(st.k===k)st.d=!st.d;else{st.k=k;st.d=true}render()});
+}
+
+/* ================= WEEK ================= */
+function renderWk(){
+  const all=ctx(Array.from({length:S.dim},(_,i)=>i+1));
+  $('#wkRule').textContent=`เดือนนี้ ${S.dim} วัน → แบ่ง ${S.weeks.map(w=>w.days).join('-')} วัน`;
+  const wk=S.weeks.map(w=>{const days=[];for(let d=w.from;d<=w.to;d++)days.push(d);const el=days.filter(d=>d<=S.asOf);const ds=new Set(el);
+    const pv=sum(all.fp.filter(x=>ds.has(x.d)),x=>x.v),tr=sum(all.ft.filter(x=>ds.has(x.d)),x=>x.r);
+    const ptf=all.tPsum*all.fP(days),ttf=all.tTsum*all.fT(days),ptg=all.tPsum*all.fP(el),ttg=all.tTsum*all.fT(el);
+    return {...w,el:el.length,pv,tr,ptf,ttf,ptg,ttg,status:w.from>S.asOf?'ยังไม่เริ่ม':w.to<=S.asOf?'จบแล้ว':`กำลังดำเนินการ (${el.length}/${w.days} วัน)`}});
+  $('#wkCards').innerHTML=wk.map(w=>`<div class="wkc"><div class="h">Week ${w.w} <span class="muted">· ${w.status}</span></div><div class="d">${w.from}–${w.to} ${TH_MON[S.M-1]} · ${w.days} วัน</div>
+    <div class="row"><span class="tag p">POST</span><span>${fmt(w.pv)} / ${fmt(w.ptf)}</span>${pill(pct(w.pv,w.ptf))}</div>
+    <div class="row"><span class="tag t">TOL</span><span>${fmt(w.tr)} / ${fmt(w.ttf)}</span>${pill(pct(w.tr,w.ttf))}</div>
+    ${w.el&&w.el<w.days?`<div class="row muted"><span>%Ach ถึงวันนี้</span><span>P ${fp(pct(w.pv,w.ptg))} · T ${fp(pct(w.tr,w.ttg))}</span></div>`:''}</div>`).join('');
+  const wl=wk.map(w=>'W'+w.w);
+  const wcfg=(a,col)=>({type:'bar',data:{labels:wl,datasets:[{label:'%Ach เทียบ Target Week',data:a.map(x=>x==null?null:+(x*100).toFixed(1)),backgroundColor:col}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v+'%'}}}}});
+  mkChart('chWkP',wcfg(wk.map(w=>w.from>S.asOf?null:pct(w.pv,w.ptf)),'#e4002b'));
+  mkChart('chWkT',wcfg(wk.map(w=>w.from>S.asOf?null:pct(w.tr,w.ttf)),'#0b6bcb'));
+  // shop x week
+  const m=S.wkMetric;const q=$('#qWk').value.trim().toLowerCase();
+  const rows=all.shops.filter(s=>!q||(s.code+' '+s.name).toLowerCase().includes(q)).map(s=>({code:s.code,name:s.name,area:s.area,type:s.type}));
+  const idx=new Map(rows.map(r=>[r.code,r]));
+  for(const r of rows)for(const w of S.weeks){r['a'+w.w]=0}
+  const src=m==='P'?all.fp:all.ft;for(const x of src){const r=idx.get(x.s);if(r)r['a'+(S.wkOf(x.d)+1)]+=m==='P'?x.v:x.r}
+  for(const r of rows){const s=S.shops.get(r.code);let tot=0,tt=0;for(const w of S.weeks){const days=[];for(let d=w.from;d<=w.to;d++)days.push(d);const tg=(m==='P'?s.tP*all.fP(days):s.tT*all.fT(days));r['t'+w.w]=tg;r['p'+w.w]=w.from>S.asOf?null:pct(r['a'+w.w],tg);tot+=r['a'+w.w];tt+=tg}r.tot=tot;r.tt=tt;r.pt=pct(tot,tt)}
+  const cols=[{k:'code',t:'Code',l:1},{k:'name',t:'SHOP NAME',l:1},{k:'area',t:'AREA',l:1},{k:'type',t:'TYPE',l:1}];
+  const cc=m==='P'?'ph':'th';
+  for(const w of S.weeks){cols.push({g:`Week ${w.w} (${w.from}–${w.to})`,k:'a'+w.w,t:'Actual',f:x=>fmt(x),c:cc+' w'+w.w},{k:'p'+w.w,t:'%Ach',f:pill,c:cc+' w'+w.w})}
+  cols.push({g:'ทั้งเดือน',k:'tot',t:'Actual',f:fmt,c:'mo'},{k:'tt',t:'Target',f:fmt,c:'mo'},{k:'pt',t:'%Ach',f:pill,c:'mo'});
+  table('#tblWk','wk'+m,rows,cols,'pt',true);
+}
+
+/* ================= BATTLE ================= */
+function battleData(r){
+  const days=r.days.filter(d=>d<=S.asOf);
+  const c=ctx(days.length?days:[]);
+  const bs=byShop(c);
+  const rows=[...bs.values()].map(o=>{const sc=(o.pa!=null&&o.ta!=null)?(o.pa+o.ta)/2:(o.pa??o.ta);return {code:o.s.code,name:o.s.name,area:o.s.area,type:o.s.type||'-',pv:o.pv,ptg:o.ptg,pa:o.pa,tr:o.tr,ttg:o.ttg,ta:o.ta,sc}});
+  return {c,rows,days};
+}
+function renderBt(){
+  $('#rounds').innerHTML=S.rounds.map((r,i)=>`<button class="rb ${i===S.round?'on':''} ${r.status==='fut'?'fut':''}" data-i="${i}">R${r.no} · ${r.label}<small>${r.from===r.to?r.from:r.from+'–'+r.to} ${TH_MON[S.M-1]}${r.status==='live'?' · LIVE':''}</small></button>`).join('');
+  document.querySelectorAll('#rounds .rb').forEach(b=>b.onclick=()=>{S.round=+b.dataset.i;renderBt()});
+  const r=S.rounds[S.round];const {rows,days}=battleData(r);
+  const mk=S.btMetric==='S'?'sc':S.btMetric==='P'?'pa':'ta';
+  const tp=sum(rows,x=>x.pv),tpt=sum(rows,x=>x.ptg),tt=sum(rows,x=>x.tr),ttt=sum(rows,x=>x.ttg);
+  $('#btKpi').innerHTML=[
+    kpi('','รอบ',`R${r.no} · ${r.label}`,`${r.days.map(d=>d).join(', ')} ${TH_MON[S.M-1]} · ${r.status==='done'?'จบแล้ว':r.status==='live'?`LIVE (มีข้อมูล ${days.length}/${r.days.length} วัน)`:'ยังไม่เริ่ม'}`),
+    kpi('p','Postpaid Revenue',fmt(tp),`Target ${fmt(tpt)} · ${fp(pct(tp,tpt))}`,pct(tp,tpt)),
+    kpi('t','TOL Register',fmt(tt),`Target ${fmt(ttt,1)} · ${fp(pct(tt,ttt))}`,pct(tt,ttt)),
+    kpi('p','Shop ถึงเป้า Postpaid',fmt(rows.filter(x=>x.pa>=1).length),`จาก ${rows.filter(x=>x.ptg>0).length} shop`),
+    kpi('t','Shop ถึงเป้า TOL',fmt(rows.filter(x=>x.ta>=1).length),`จาก ${rows.filter(x=>x.ttg>0).length} shop`),
+    kpi('','ถึงเป้าทั้ง 2 ตัว',fmt(rows.filter(x=>x.pa>=1&&x.ta>=1).length),'Postpaid & TOL ≥ 100%')].join('');
+  const groups=S.btGroup?groupBy(rows,x=>x.type):new Map([['ทุก TYPE SHOP',rows]]);
+  const gk=[...groups.keys()].sort();
+  const box=$('#btTables');box.className='grid '+(gk.length>1?'g2':'');
+  box.innerHTML=gk.map((g,i)=>`<div class="card"><h3>${esc(g)} <small>${groups.get(g).length} shop</small></h3><div class="tbl-wrap" id="bt${i}" style="max-height:460px"></div></div>`).join('');
+  const medal=i=>i===0?'<span class="medal">🥇</span>':i===1?'<span class="medal">🥈</span>':i===2?'<span class="medal">🥉</span>':i+1;
+  gk.forEach((g,i)=>{
+    const rs=groups.get(g).slice().sort((a,b)=>(b[mk]??-1)-(a[mk]??-1));rs.forEach((x,j)=>x.rk=j);
+    S.sort['bt'+i]={k:'rk',d:false};
+    table('#bt'+i,'bt'+i,rs,[{k:'rk',t:'#',f:(x)=>medal(x)},{k:'name',t:'SHOP',l:1},{k:'area',t:'AREA',l:1,f:x=>esc(String(x).replace(/ - .*/,''))},
+      {g:'POSTPAID',k:'pv',t:'Actual',f:fmt,c:'ph'},{k:'ptg',t:'Target',f:fmt,c:'ph'},{k:'pa',t:'%Ach',f:pill,c:'ph'},
+      {g:'TOL',k:'tr',t:'Actual',f:fmt,c:'th'},{k:'ttg',t:'Target',f:x=>fmt(x,1),c:'th'},{k:'ta',t:'%Ach',f:pill,c:'th'},
+      {k:'sc',t:'คะแนน',f:pill}],'rk',false);
+  });
+  // all rounds summary
+  const sr=S.rounds.filter(x=>x.status!=='fut').map(x=>{const d=battleData(x).rows;const pv=sum(d,y=>y.pv),pt=sum(d,y=>y.ptg),tr=sum(d,y=>y.tr),tt=sum(d,y=>y.ttg);
+    const best=d.filter(y=>y.sc!=null).sort((a,b)=>b.sc-a.sc)[0];
+    return {r:`R${x.no} · ${x.label}`,dt:x.from===x.to?String(x.from):`${x.from}–${x.to}`,st:x.status==='live'?'LIVE':'จบ',pv,pt,pa:pct(pv,pt),tr,tt,ta:pct(tr,tt),wp:d.filter(y=>y.pa>=1).length,wt:d.filter(y=>y.ta>=1).length,best:best?`${best.name.replace('True Shop ','')} (${fp(best.sc,0)})`:'–',no:x.no}});
+  table('#tblRounds','rounds',sr,[{k:'r',t:'รอบ',l:1},{k:'dt',t:'วันที่',l:1},{k:'st',t:'สถานะ',l:1},
+    {g:'POSTPAID',k:'pv',t:'Actual',f:fmt,c:'ph'},{k:'pt',t:'Target',f:fmt,c:'ph'},{k:'pa',t:'%Ach',f:pill,c:'ph'},{k:'wp',t:'Shop ถึงเป้า',f:fmt,c:'ph'},
+    {g:'TOL',k:'tr',t:'Actual',f:fmt,c:'th'},{k:'tt',t:'Target',f:x=>fmt(x,1),c:'th'},{k:'ta',t:'%Ach',f:pill,c:'th'},{k:'wt',t:'Shop ถึงเป้า',f:fmt,c:'th'},
+    {k:'best',t:'Top Shop (คะแนนรวม)',l:1}],'no',false);
+}
+
+/* ================= INDY ================= */
+function indyRows(c){
+  const m=new Map();const get=(i,s)=>{let o=m.get(i);if(!o){o={i,shopsN:new Map(),pn:0,pr:0,pv:0,tn:0,tr:0,days:new Set()};m.set(i,o)}o.shopsN.set(s,(o.shopsN.get(s)||0)+1);return o};
+  for(const x of c.fp){const o=get(x.i,x.s);o.pn+=x.n;o.pr+=x.r;o.pv+=x.v;o.days.add(x.d)}
+  for(const x of c.ft){const o=get(x.i,x.s);o.tn+=x.n;o.tr+=x.r;o.days.add(x.d)}
+  return [...m.values()].map(o=>{const s=[...o.shopsN].sort((a,b)=>b[1]-a[1])[0][0];const sh=S.shops.get(s)||{};return {i:o.i,code:s,shop:(sh.name||s),area:sh.area||'',type:sh.type||'',multi:o.shopsN.size>1,pn:o.pn,pr:o.pr,pv:o.pv,pcr:pct(o.pr,o.pn),arpu:pct(o.pv,o.pr),tn:o.tn,tr:o.tr,tcr:pct(o.tr,o.tn),ad:o.days.size,pvd:o.days.size?o.pv/o.days.size:0}});
+}
+function renderIn(){
+  const c=ctx();const rows=indyRows(c);
+  const act=rows.filter(r=>r.pr+r.tr>0);
+  const pvs=rows.map(r=>r.pv).sort((a,b)=>a-b);const med=pvs.length?pvs[Math.floor(pvs.length/2)]:0;
+  const tot=sum(rows,r=>r.pv);const top20=rows.slice().sort((a,b)=>b.pv-a.pv).slice(0,Math.ceil(rows.length*.2));
+  $('#inKpi').innerHTML=[
+    kpi('','จำนวน Indy ที่บันทึก',fmt(rows.length),`มียอดปิดได้ ${fmt(act.length)} คน (${fp(pct(act.length,rows.length))})`),
+    kpi('p','Revenue เฉลี่ย / Indy',fmt(pct(tot,rows.length)),`Median ${fmt(med)}`),
+    kpi('p','Top 20% Indy ทำ Revenue',fp(pct(sum(top20,r=>r.pv),tot)),'ของยอด Postpaid ทั้งหมด'),
+    kpi('p','Close Rate เฉลี่ย',fp(pct(sum(rows,r=>r.pr),sum(rows,r=>r.pn))),'Postpaid'),
+    kpi('t','TOL Register เฉลี่ย / Indy',fmt(pct(sum(rows,r=>r.tr),rows.filter(r=>r.tn>0).length),1),`Indy ที่ขาย TOL ${fmt(rows.filter(r=>r.tn>0).length)} คน`),
+    kpi('t','Close Rate เฉลี่ย',fp(pct(sum(rows,r=>r.tr),sum(rows,r=>r.tn))),'TOL')].join('');
+  const tp=rows.slice().sort((a,b)=>b.pv-a.pv).slice(0,15),tt=rows.slice().sort((a,b)=>b.tr-a.tr).slice(0,15);
+  const hb=(rs,f,col,lab)=>({type:'bar',data:{labels:rs.map(r=>r.i),datasets:[{label:lab,data:rs.map(f),backgroundColor:col}]},options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{afterLabel:i=>rs[i.dataIndex].shop}}},scales:{x:{ticks:{callback:v=>fmt(v)}}}}});
+  mkChart('chInP',hb(tp,r=>r.pv,'#e4002b','Revenue'));mkChart('chInT',hb(tt,r=>r.tr,'#0b6bcb','Register'));
+  const q=$('#qIn').value.trim().toLowerCase();
+  const fr=rows.filter(r=>!q||(r.i+' '+r.shop+' '+r.area).toLowerCase().includes(q));
+  $('#inCnt').textContent=fr.length+' คน';S._inRows=fr;
+  table('#tblIn','indy',fr,[{k:'i',t:'SALE ID',l:1},{k:'shop',t:'SHOP',l:1,f:(x,r)=>esc(x)+(r.multi?' <span class="muted">(+หลาย shop)</span>':'')},{k:'area',t:'AREA',l:1},{k:'type',t:'TYPE',l:1},{k:'ad',t:'วันที่ทำงาน',f:fmt},
+    {g:'POSTPAID',k:'pn',t:'นำเสนอ',f:fmt,c:'ph'},{k:'pr',t:'Register',f:fmt,c:'ph'},{k:'pcr',t:'Close%',f:x=>fp(x),c:'ph'},{k:'pv',t:'Revenue',f:fmt,c:'ph'},{k:'arpu',t:'ARPU',f:fmt,c:'ph'},{k:'pvd',t:'Rev./วัน',f:fmt,c:'ph'},
+    {g:'TOL',k:'tn',t:'นำเสนอ',f:fmt,c:'th'},{k:'tr',t:'Register',f:fmt,c:'th'},{k:'tcr',t:'Close%',f:x=>fp(x),c:'th'}],'pv',true);
+}
+
+/* ================= ANALYSIS ================= */
+function renderAn(){
+  const c=ctx(),t=totals(c),bs=byShop(c);
+  // channel
+  const ch=new Map();const g=k=>{let o=ch.get(k);if(!o){o={pn:0,pr:0,pv:0,tn:0,tr:0};ch.set(k,o)}return o};
+  for(const x of c.fp){const o=g(x.c);o.pn+=x.n;o.pr+=x.r;o.pv+=x.v}for(const x of c.ft){const o=g(x.c);o.tn+=x.n;o.tr+=x.r}
+  const chk=[...ch.keys()].sort((a,b)=>(ch.get(b).pn+ch.get(b).tn)-(ch.get(a).pn+ch.get(a).tn));
+  mkChart('chCh',{data:{labels:chk,datasets:[
+    {type:'bar',label:'นำเสนอ Postpaid',data:chk.map(k=>ch.get(k).pn),backgroundColor:'#e4002bcc',yAxisID:'y'},
+    {type:'bar',label:'นำเสนอ TOL',data:chk.map(k=>ch.get(k).tn),backgroundColor:'#0b6bcbcc',yAxisID:'y'},
+    {type:'line',label:'Close% Postpaid',data:chk.map(k=>+(100*(pct(ch.get(k).pr,ch.get(k).pn)||0)).toFixed(1)),borderColor:'#9f001e',yAxisID:'y1'},
+    {type:'line',label:'Close% TOL',data:chk.map(k=>+(100*(pct(ch.get(k).tr,ch.get(k).tn)||0)).toFixed(1)),borderColor:'#063f7a',yAxisID:'y1'}]},
+    options:{maintainAspectRatio:false,scales:{y:{beginAtZero:true},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{callback:v=>v+'%'}}}}});
+  // type
+  const ty=new Map();for(const x of c.fp){if(!x.t||!x.r)continue;const o=ty.get(x.t)||{r:0,v:0};o.r+=x.r;o.v+=x.v;ty.set(x.t,o)}
+  const tyk=[...ty.keys()].sort((a,b)=>ty.get(b).v-ty.get(a).v);
+  mkChart('chType',{data:{labels:tyk,datasets:[{type:'bar',label:'Register',data:tyk.map(k=>ty.get(k).r),backgroundColor:'#e4002bcc',yAxisID:'y'},{type:'line',label:'ARPU',data:tyk.map(k=>Math.round(ty.get(k).v/ty.get(k).r)),borderColor:'#111318',yAxisID:'y1'}]},
+    options:{maintainAspectRatio:false,scales:{y:{beginAtZero:true},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false}}}}});
+  // lost
+  const lost=(rows,keyf)=>{const m=new Map();for(const x of rows){const k=keyf(x);m.set(k,(m.get(k)||0)+x.n)}return [...m].sort((a,b)=>b[1]-a[1])};
+  const lp=lost(c.lp,x=>x.rs),lt=lost(c.lt,x=>x.rs);
+  const lb=(arr,col)=>({type:'bar',data:{labels:arr.slice(0,10).map(a=>a[0].length>38?a[0].slice(0,38)+'…':a[0]),datasets:[{data:arr.slice(0,10).map(a=>a[1]),backgroundColor:col}]},options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{beginAtZero:true}}}});
+  mkChart('chLostP',lb(lp,'#e4002b99'));mkChart('chLostT',lb(lt,'#0b6bcb99'));
+  // hour
+  let hpk=[],hm=null;
+  if(c.hp){hm=new Map();for(const x of c.hp){const o=hm.get(x.h)||{pn:0,pr:0,tn:0,tr:0};o.pn+=x.n;o.pr+=x.r;hm.set(x.h,o)}for(const x of c.ht){const o=hm.get(x.h)||{pn:0,pr:0,tn:0,tr:0};o.tn+=x.n;o.tr+=x.r;hm.set(x.h,o)}
+    hpk=[...hm.keys()].filter(h=>h>=8&&h<=22).sort((a,b)=>a-b);
+    mkChart('chHour',{data:{labels:hpk.map(h=>h+':00'),datasets:[
+      {type:'bar',label:'นำเสนอ Postpaid',data:hpk.map(h=>hm.get(h).pn),backgroundColor:'#e4002bcc',yAxisID:'y'},
+      {type:'bar',label:'นำเสนอ TOL',data:hpk.map(h=>hm.get(h).tn),backgroundColor:'#0b6bcbcc',yAxisID:'y'},
+      {type:'line',label:'Close% Postpaid',data:hpk.map(h=>+(100*(pct(hm.get(h).pr,hm.get(h).pn)||0)).toFixed(1)),borderColor:'#9f001e',yAxisID:'y1'},
+      {type:'line',label:'Close% TOL',data:hpk.map(h=>+(100*(pct(hm.get(h).tr,hm.get(h).tn)||0)).toFixed(1)),borderColor:'#063f7a',yAxisID:'y1'}]},
+      options:{maintainAspectRatio:false,scales:{y:{beginAtZero:true},y1:{position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{callback:v=>v+'%'}}}}});
+  }else{mkChart('chHour',{type:'bar',data:{labels:['ข้อมูลรายชั่วโมงไม่รองรับตัวกรอง Indy/Channel'],datasets:[{data:[0]}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}})}
+  // dow: avg per day & ach vs daily target
+  const dw=Array.from({length:7},()=>({n:0,pv:0,tr:0,pt:0,tt:0}));
+  const dP=new Map(),dT=new Map();for(const x of c.fp)dP.set(x.d,(dP.get(x.d)||0)+x.v);for(const x of c.ft)dT.set(x.d,(dT.get(x.d)||0)+x.r);
+  for(const d of c.elDays){const k=new Date(S.Y,S.M-1,d).getDay();dw[k].n++;dw[k].pv+=dP.get(d)||0;dw[k].tr+=dT.get(d)||0;dw[k].pt+=c.tPsum*S.dfP[d];dw[k].tt+=c.tTsum*S.dfT[d]}
+  const ord=[1,2,3,4,5,6,0];
+  mkChart('chDow',{type:'bar',data:{labels:ord.map(k=>TH_DOW[k]),datasets:[{label:'Postpaid %Ach',data:ord.map(k=>+(100*(pct(dw[k].pv,dw[k].pt)||0)).toFixed(1)),backgroundColor:'#e4002bcc'},{label:'TOL %Ach',data:ord.map(k=>+(100*(pct(dw[k].tr,dw[k].tt)||0)).toFixed(1)),backgroundColor:'#0b6bcbcc'}]},
+    options:{maintainAspectRatio:false,plugins:{tooltip:{callbacks:{afterLabel:i=>{const k=ord[i.dataIndex];return i.datasetIndex===0?`เฉลี่ย ${fmt(dw[k].pv/(dw[k].n||1))}/วัน`:`เฉลี่ย ${fmt(dw[k].tr/(dw[k].n||1),1)}/วัน`}}}},scales:{y:{beginAtZero:true,ticks:{callback:v=>v+'%'}}}}});
+  // risk tables
+  const sh=[...bs.values()];
+  const risk=sh.filter(o=>(o.ptf>0&&o.pfc<.9)||(o.ttf>0&&o.tfc<.9)).map(o=>({name:o.s.name,area:o.s.area.replace(/ - .*/,''),pfc:o.ptf>0?o.pfc:null,tfc:o.ttf>0?o.tfc:null,pneed:t.rem>0?Math.max(0,(o.ptf-o.pv)/t.rem):null,tneed:t.rem>0?Math.max(0,(o.ttf-o.tr)/t.rem):null}));
+  table('#tblRisk','risk',risk,[{k:'name',t:'SHOP',l:1},{k:'area',t:'AREA',l:1},{k:'pfc',t:'Post FC',f:pill,c:'ph'},{k:'pneed',t:'ต้องทำ/วัน',f:fmt,c:'ph'},{k:'tfc',t:'TOL FC',f:pill,c:'th'},{k:'tneed',t:'ต้องทำ/วัน',f:x=>fmt(x,1),c:'th'}],'pfc',false);
+  const last3=new Set([S.asOf,S.asOf-1,S.asOf-2].filter(d=>d>=1));
+  const zp=new Map(),zt=new Map();for(const x of c.fp)if(last3.has(x.d))zp.set(x.s,(zp.get(x.s)||0)+x.r);for(const x of c.ft)if(last3.has(x.d))zt.set(x.s,(zt.get(x.s)||0)+x.r);
+  const zero=sh.filter(o=>(o.s.tP>0&&!zp.get(o.s.code))||(o.s.tT>0&&!zt.get(o.s.code))).map(o=>({name:o.s.name,area:o.s.area.replace(/ - .*/,''),p:zp.get(o.s.code)||0,t:zt.get(o.s.code)||0,pa:o.pa,ta:o.ta}));
+  table('#tblZero','zero',zero,[{k:'name',t:'SHOP',l:1},{k:'area',t:'AREA',l:1},{k:'p',t:'Post Reg. 3 วัน',f:fmt,c:'ph'},{k:'pa',t:'Post %Ach',f:pill,c:'ph'},{k:'t',t:'TOL Reg. 3 วัน',f:fmt,c:'th'},{k:'ta',t:'TOL %Ach',f:pill,c:'th'}],'p',false);
+  // insights
+  const ins=[];
+  ins.push(`Postpaid ทำได้ <b>${fmt(t.pv)}</b> (${fp(pct(t.pv,t.ptg))} ของเป้าถึงวันนี้) · Run-rate คาดจบที่ <b>${fp(pct(t.pfc,t.ptf))}</b> ของเป้า${t.rem>0?` — ต้องทำเฉลี่ย <b>${fmt(Math.max(0,(t.ptf-t.pv)/t.rem))}/วัน</b> จากที่ทำได้ ${fmt(t.pv/(t.elN||1))}/วัน`:''}`);
+  ins.push(`TOL ทำได้ <b>${fmt(t.tr)}</b> Register (${fp(pct(t.tr,t.ttg))} ของเป้าถึงวันนี้) · Run-rate คาดจบที่ <b>${fp(pct(t.tfc,t.ttf))}</b>${t.rem>0?` — ต้องทำ <b>${fmt(Math.max(0,(t.ttf-t.tr)/t.rem),1)}/วัน</b> จาก ${fmt(t.tr/(t.elN||1),1)}/วัน`:''}`);
+  const am=groupBy(sh,o=>o.s.area);const ars=[...am].map(([a,os])=>({a,pa:pct(sum(os,o=>o.pv),sum(os,o=>o.ptg)),ta:pct(sum(os,o=>o.tr),sum(os,o=>o.ttg))})).filter(x=>x.pa!=null);
+  if(ars.length>1){const sp=ars.slice().sort((a,b)=>b.pa-a.pa);ins.push(`AREA Postpaid ดีที่สุด <b>${esc(sp[0].a)}</b> (${fp(sp[0].pa)}) · ต่ำสุด <b>${esc(sp.at(-1).a)}</b> (${fp(sp.at(-1).pa)})`);
+    const st=ars.filter(x=>x.ta!=null).sort((a,b)=>b.ta-a.ta);if(st.length>1)ins.push(`AREA TOL ดีที่สุด <b>${esc(st[0].a)}</b> (${fp(st[0].ta)}) · ต่ำสุด <b>${esc(st.at(-1).a)}</b> (${fp(st.at(-1).ta)})`)}
+  const pOn=sh.filter(o=>o.ptf>0&&o.pfc>=1).length,pT=sh.filter(o=>o.ptf>0).length,tOn=sh.filter(o=>o.ttf>0&&o.tfc>=1).length,tT=sh.filter(o=>o.ttf>0).length;
+  ins.push(`Shop ที่ Forecast ถึงเป้า: Postpaid <b>${pOn}/${pT}</b> shop · TOL <b>${tOn}/${tT}</b> shop · เสี่ยง (&lt;90%) รวม <b>${risk.length}</b> shop`);
+  if(chk.length){const bc=chk.filter(k=>ch.get(k).pn>=30).sort((a,b)=>pct(ch.get(b).pr,ch.get(b).pn)-pct(ch.get(a).pr,ch.get(a).pn));if(bc.length)ins.push(`Channel ที่ Close rate Postpaid สูงสุด <b>${esc(bc[0])}</b> (${fp(pct(ch.get(bc[0]).pr,ch.get(bc[0]).pn))}) · ต่ำสุด <b>${esc(bc.at(-1))}</b> (${fp(pct(ch.get(bc.at(-1)).pr,ch.get(bc.at(-1)).pn))})`)}
+  if(tyk.length){const tr=sum(tyk,k=>ty.get(k).r);ins.push(`Postpaid ขายได้มากสุดจาก <b>${esc(tyk.slice().sort((a,b)=>ty.get(b).r-ty.get(a).r)[0])}</b> · ARPU สูงสุด <b>${esc(tyk.slice().sort((a,b)=>ty.get(b).v/ty.get(b).r-ty.get(a).v/ty.get(a).r)[0])}</b> · รวม ${fmt(tr)} เครื่อง`)}
+  if(lp.length){const tl=sum(lp,a=>a[1]);ins.push(`สาเหตุปิด Postpaid ไม่ได้อันดับ 1 <b>${esc(lp[0][0])}</b> (${fp(pct(lp[0][1],tl))}) · Top 3 รวม ${fp(pct(sum(lp.slice(0,3),a=>a[1]),tl))}`)}
+  if(lt.length){const tl=sum(lt,a=>a[1]);ins.push(`สาเหตุปิด TOL ไม่ได้อันดับ 1 <b>${esc(lt[0][0])}</b> (${fp(pct(lt[0][1],tl))})`)}
+  if(hm&&hpk.length){const pk=hpk.slice().sort((a,b)=>hm.get(b).pn+hm.get(b).tn-hm.get(a).pn-hm.get(a).tn)[0];const bcr=hpk.filter(h=>hm.get(h).pn>=50).sort((a,b)=>pct(hm.get(b).pr,hm.get(b).pn)-pct(hm.get(a).pr,hm.get(a).pn))[0];ins.push(`ช่วงที่ลูกค้าเข้ามากสุด <b>${pk}:00–${pk+1}:00</b>${bcr!=null?` · Close rate Postpaid สูงสุดช่วง <b>${bcr}:00</b> (${fp(pct(hm.get(bcr).pr,hm.get(bcr).pn))})`:''}`)}
+  const dws=ord.filter(k=>dw[k].n).map(k=>({k,a:pct(dw[k].pv,dw[k].pt)})).filter(x=>x.a!=null).sort((a,b)=>b.a-a.a);
+  if(dws.length>1)ins.push(`วันที่ Postpaid ทำได้ดีเทียบเป้ารายวัน: <b>${TH_DOW[dws[0].k]}</b> (${fp(dws[0].a)}) · แย่สุด <b>${TH_DOW[dws.at(-1).k]}</b> (${fp(dws.at(-1).a)})`);
+  if(zero.length)ins.push(`มี <b>${zero.length}</b> shop ที่ไม่มี Register ในช่วง 3 วันล่าสุดอย่างน้อย 1 ตัว (ดูตารางด้านล่าง)`);
+  $('#insList').innerHTML=ins.map(x=>`<li>${x}</li>`).join('');
+}
+
+/* ================= EVENTS ================= */
+document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x===b));S.tab=b.dataset.t;document.querySelectorAll('.sec').forEach(s=>s.classList.toggle('on',s.id==='sec-'+S.tab));render()});
+const seg=(id,fn)=>document.querySelectorAll(`#${id} button`).forEach(b=>b.onclick=()=>{document.querySelectorAll(`#${id} button`).forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset.v);render()});
+seg('btMetric',v=>S.btMetric=v);seg('btGroup',v=>S.btGroup=v==='1');seg('wkMetric',v=>S.wkMetric=v);
+['#qShop','#qWk','#qIn'].forEach(s=>$(s).addEventListener('input',()=>{clearTimeout(rt);rt=setTimeout(render,150)}));
+$('#btnReset').onclick=()=>{for(const k in S.f)S.f[k].clear();updateBtns();render()};
+$('#btnReload').onclick=load;
+$('#expShop').onclick=()=>{const r=S._shopRows||[];dl('shop_summary.csv',[['Code','Shop','Area','Type','Post Target','Post Actual','Post %Ach','Post Forecast','TOL Target','TOL Actual','TOL %Ach','TOL Forecast'],...r.map(o=>[o.code,o.name,o.area,o.type,Math.round(o.ptg),o.pv,o.pa,o.pfc,o.ttg.toFixed(1),o.tr,o.ta,o.tfc])])};
+$('#expIn').onclick=()=>{const r=S._inRows||[];dl('indy_summary.csv',[['Sale ID','Shop','Area','Type','Active days','Post นำเสนอ','Post Register','Post Close%','Post Revenue','ARPU','TOL นำเสนอ','TOL Register','TOL Close%'],...r.map(o=>[o.i,o.shop,o.area,o.type,o.ad,o.pn,o.pr,o.pcr,o.pv,o.arpu,o.tn,o.tr,o.tcr])])};
+load();
+</script>
+</body>
+</html>
